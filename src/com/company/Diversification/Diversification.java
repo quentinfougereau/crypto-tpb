@@ -53,7 +53,11 @@ public class Diversification {
 	public static int Nk;
 
     public static void affiche_la_clef(byte clef[], int longueur) {
-        for (int i=0; i<longueur; i++) { System.out.printf ("%02X ", clef[i]); }
+        for (int i=0; i<longueur; i++) {
+        	System.out.printf ("%02X ", clef[i]);
+        	if (i % 16 == 15)
+				System.out.println();
+        }
         System.out.println();
     }
 
@@ -98,7 +102,7 @@ public class Diversification {
 		}
 
 		int numero_ronde = 0;
-		for (int i = Nk * 4; i < longueur_de_la_clef_etendue; i += Nk) {
+		for (int i = Nk * 4; i < longueur_de_la_clef_etendue; i += 4) {
 			byte[] tmp = new byte[4];
 			int index = 0;
 			/* La colonne précédente est recopiée dans tmp */
@@ -119,7 +123,7 @@ public class Diversification {
 					}
 				}
 				tmp = xor(tmp, RconArray);
-			} else if (Nk > 6 && (i % Nk == 4)) {
+			} else if (Nk > 6 && (i % (4 * Nk) == 16)) {
 				tmp = subWord(tmp);
 			}
 			byte[] tmp2 = new byte[tmp.length];
@@ -135,12 +139,6 @@ public class Diversification {
 				W[i + l] = tmp[l];
 			}
 
-			if (i % (4 * Nk) == 0) {
-				afficher_ronde(W, numero_ronde, Nk);
-				numero_ronde++;
-			} else if (i == longueur_de_la_clef_etendue - Nk) {
-				afficher_ronde(W, numero_ronde, Nk);
-			}
 		}
 
 	}
@@ -197,13 +195,6 @@ public class Diversification {
 		}
 		System.out.println();
 	}
-	public static void afficher_ronde(byte[] bytes, int numero_ronde, int Nk) {
-		System.out.print("Ronde n°" + numero_ronde + " = ");
-		for (int i = (4 * Nk) * numero_ronde; i < (4 * Nk) * numero_ronde + 16; i++) {
-			System.out.printf("%02x ", bytes[i]);
-		}
-		System.out.println();
-	}
 
 }
 
@@ -225,3 +216,7 @@ public class Diversification {
    RoundKeys[10] =  D0  14  F9  A8  C9  EE  25  89  E1  3F  0C  C8  B6  63  0C  A6 
    $
 */
+
+/* Autre clé courte (32 octets) :
+ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+ */
