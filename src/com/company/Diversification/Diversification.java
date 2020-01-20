@@ -1,6 +1,8 @@
 package com.company.Diversification;
 
 import java.lang.String;
+import java.sql.SQLOutput;
+import java.util.Arrays;
 
 public class Diversification {
 
@@ -79,7 +81,6 @@ public class Diversification {
 	public static void calcule_la_clef_courte(String clef) {
 		byte[] clefEnByte = hexStringToByte(clef);
     	System.arraycopy(clefEnByte, 0, K, 0, clefEnByte.length);
-		printBytes(K);
     }
     
 	public static void calcule_la_clef_etendue() {
@@ -91,18 +92,80 @@ public class Diversification {
 			Nr = 14; Nk = 8;
 		}
 		longueur_de_la_clef_etendue = 4 * (4 * (Nr + 1));
+		/* K est recopiée dans W */
 		for (int i = 0; i < Nk * 4; i++) { // Nk * 4 car ce sont des tableaux à 1 dimension (pas de colonnes)
 			W[i] = K[i];
 		}
-		for (int i = Nk * 4; i < longueur_de_la_clef_etendue; i++) {
+
+		int numero_ronde = 0;
+		for (int i = Nk * 4; i < longueur_de_la_clef_etendue; i += Nk) {
 			byte[] tmp = new byte[4];
 			int index = 0;
+			/* La colonne précédente est recopiée dans tmp */
 			for (int j = i - 4; j < i; j++) { // Les 4 bytes précédents (la colonne précédente)
 				tmp[index] = W[j];
 				index++;
 			}
+
+			if (i % (4 * Nk) == 0) {
+				tmp = rotWord(tmp);                            // Opération de confusion
+				tmp = subWord(tmp);                            // Opération de substitution
+				byte[] RconArray = new byte[tmp.length];
+				for (int j = 0; j < 4; j++) {
+					if (j == 0) {
+						RconArray[j] = Rcon[(i / (Nk * 4)) - 1];
+					} else {
+						RconArray[j] = 0;
+					}
+				}
+				tmp = xor(tmp, RconArray);
+			} else if (Nk > 6 && (i % Nk == 4)) {
+				tmp = subWord(tmp);
+			}
+			byte[] tmp2 = new byte[tmp.length];
+			int j = 0;
+			/* La Nk-ième colonne précédente est recopiée dans tmp2 */
+			while(j < 4) {
+				tmp2[j] = W[(i + j) - (4 * Nk)];
+				j++;
+			}
+			tmp = xor(tmp2, tmp);
+			/* Copie de tmp dans W */
+			for (int l = 0; l < 4; l++) {
+				W[i + l] = tmp[l];
+			}
+
+			if (i % (4 * Nk) == 0) {
+				afficher_ronde(W, numero_ronde, Nk);
+				numero_ronde++;
+			} else if (i == longueur_de_la_clef_etendue - Nk) {
+				afficher_ronde(W, numero_ronde, Nk);
+			}
 		}
 
+	}
+
+	public static byte[] rotWord(byte[] bytes) {
+    	int length = bytes.length;
+    	byte[] res = new byte[length];
+    	for (int i = 0; i < length; i++) {
+    		res[i] = bytes[(i + 1) % length];
+		}
+    	return res;
+	}
+
+	public static byte[] subWord(byte[] bytes) {
+		int length = bytes.length;
+		byte[] res = new byte[length];
+		for (int i = 0; i < length; i++) {
+			/* The values of the integral types are integers in the following ranges : For byte, from -128 to 127, inclusive */
+			if (bytes[i] < 0) {
+				res[i] = SBox[(int) bytes[i] + 256];
+			} else {
+				res[i] = SBox[(int) bytes[i]];
+			}
+		}
+		return res;
 	}
 
 	public static byte[] hexStringToByte(String s) {
@@ -115,9 +178,29 @@ public class Diversification {
 		return bytes;
 	}
 
+	/*
+    Effectue l'opération xor entre deux tableaux d'octets de même taille
+    */
+	public static byte[] xor(byte[] op1, byte[] op2) {
+		byte[] res = new byte[op1.length];
+		if (op1.length == op2.length) {
+			for (int i = 0; i < op1.length; i++) {
+				res[i] = (byte) (op1[i] ^ op2[i]);
+			}
+		}
+		return res;
+	}
+
 	public static void printBytes(byte[] bytes) {
 		for (byte b : bytes) {
 			System.out.printf("%02x", b);
+		}
+		System.out.println();
+	}
+	public static void afficher_ronde(byte[] bytes, int numero_ronde, int Nk) {
+		System.out.print("Ronde n°" + numero_ronde + " = ");
+		for (int i = (4 * Nk) * numero_ronde; i < (4 * Nk) * numero_ronde + 16; i++) {
+			System.out.printf("%02x ", bytes[i]);
 		}
 		System.out.println();
 	}
